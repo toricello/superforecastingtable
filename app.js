@@ -1,81 +1,79 @@
-const question = document.querySelector("#input-question");
+const inputQuestion = document.querySelector("#input-question");
 const form = document.querySelector(".question-form");
 const startDate = document.querySelector("#start-date");
 const closingDate = document.querySelector("#closing-date");
-const inputs = document.querySelectorAll(".question-form input");
 const btn = document.querySelector(".submit-btn");
 const questionsList = document.querySelector(".questions-list");
-// submit form
 
 form.addEventListener("submit", addQuestion);
-// display questions on load
-
-// functions
 
 function addQuestion(e) {
   e.preventDefault();
-  const value = question.value;
+  const value = inputQuestion.value;
 
-  if (value !== "" && startDate.value !== "" && closingDate.value !== "") {
-    const questionSample = document.createElement("article");
+  if (value && startDate.value && closingDate.value) {
+    const question = document.createElement("article");
 
-    questionSample.classList.add("question-item");
-    questionSample.innerHTML = `<h4>${value}</h4> <h6><p>Start Date: ${startDate.value}</p><p>End Date: ${closingDate.value}</p></h6>
-         
-         <p> </p>
-          <input type="number" placeholder="make a forecast">
-          <input type="text" placeholder="Notes">
-          <button class="submit-comment">submit</button>
-          <article class="comments-container"></article>
-         
-         <label for="result">Enter the Result:</label>
-          <input type="number" id="result" min="0" max="1" step="1">
-          <button class="calculate-btn">Calculate</button>`;
-    questionsList.prepend(questionSample);
-    const submitComment = questionSample.querySelector(".submit-comment");
+    question.classList.add("question-item");
+    question.innerHTML = `<h4>${value} </h4>
+<h6><p>Start Date: ${startDate.value} </p><p>End Date: ${closingDate.value}</p></h6>
+<input type="number" placeholder="make a forecast">
+<input type="text" placeholder="Notes">
+<button class="submit-comment">Submit</button>
+<div class="comments-container"></div>
+<label for="result">Enter the Result:</label>
+<input type="number" id="result">
+<button class="calculate-btn">Calculate</button>`;
+    questionsList.prepend(question);
+    setBackToDefault();
+    const submitCommentBtn = question.querySelector(".submit-comment");
+    submitCommentBtn.addEventListener("click", makeForecast);
 
-    //   addToLocalStorage(id, value);
-    // set back to default
-    submitComment.addEventListener("click", makeForecast);
-    const calculateBtn = questionSample.querySelector(".calculate-btn");
+    const calculateBtn = question.querySelector(".calculate-btn");
     calculateBtn.addEventListener("click", (t) => {
-      let results = [];
-      let average = [];
+      let allScores = [];
+      let totalDays = [];
       const commentContainer =
         calculateBtn.previousElementSibling.previousElementSibling
           .previousElementSibling;
-      const sonuc = calculateBtn.previousElementSibling.value;
-
+      const outcome = parseInt(calculateBtn.previousElementSibling.value);
       [...commentContainer.children].forEach((e) => {
-        const tahmin = e.querySelector(".forecast").innerHTML;
-        const result =
-          Math.pow(sonuc - tahmin, 2) + Math.pow(1 - sonuc - (1 - tahmin), 2);
-        const dute = e.querySelector(".dute").innerHTML;
+        const forecastValue = e.querySelector(".forecast").innerHTML;
+        const commentScore =
+          Math.pow(outcome - forecastValue, 2) +
+          Math.pow(1 - outcome - (1 - forecastValue), 2);
+        const commentDateStr = e.querySelector(".comment-date").innerHTML;
+        const commentDateArr = commentDateStr.split("/");
+        const commentDate = new Date(
+          commentDateArr[2],
+          commentDateArr[1],
+          commentDateArr[0]
+        );
         currentTime = new Date().getTime();
+        const differenceInSeconds =
+          currentTime - new Date(commentDate).getTime();
+        const differenceFromStartInDays = Math.floor(
+          differenceInSeconds / (1000 * 3600 * 24)
+        );
 
-        let difference = currentTime - new Date(dute).getTime();
-        let totalDays = Math.floor(difference / (1000 * 3600 * 24));
-
-        results.push(result);
-        average.push(totalDays);
+        allScores.push(commentScore);
+        totalDays.push(differenceFromStartInDays);
       });
-      for (let i = 1; i < average.length; i++) {
-        average[i] = average[i] - average[i - 1];
-      }
-      console.log(average);
-      let finale = 0;
-      for (let i = 0; i < average.length; i++) {
-        finale += average[i] * results[i];
+      let commentDayCount = [];
+      commentDayCount.push(totalDays[0]);
+      for (let i = 1; i <= totalDays.length - 1; i++) {
+        commentDayCount.push(totalDays[i] - totalDays[i - 1]);
       }
 
-      const summ = average.reduce((accumulator, value) => {
-        return accumulator + value;
-      }, 0);
-      console.log(summ);
-      console.log(finale / summ);
-      const showsonuc = document.createElement("h4");
-      showsonuc.innerHTML = `Your Brier Score is: ${finale / summ}`;
-      t.currentTarget.parentElement.appendChild(showsonuc);
+      let sumOfProduct = 0;
+      for (let i = 0; i < commentDayCount.length; i++) {
+        sumOfProduct += commentDayCount[i] * allScores[i];
+      }
+      const brierScore = sumOfProduct / totalDays.length;
+      const showBrierScore = document.createElement("h4");
+      showBrierScore.innerHTML = `Your Brier Score is: ${brierScore}`;
+      t.currentTarget.parentElement.appendChild(showBrierScore);
+      calculateBtn.previousElementSibling.value = "";
     });
   } else {
     alert("please fill the blanks");
@@ -83,24 +81,24 @@ function addQuestion(e) {
 }
 
 function setBackToDefault() {
-  question.value = "";
+  inputQuestion.value = "";
   startDate.value = "";
   closingDate.value = "";
-}
-function goDefault() {
-  forecast.value = "";
-  fcomment = "";
 }
 
 function makeForecast(e) {
   const forecast =
-    e.currentTarget.previousElementSibling.previousElementSibling.value;
-  const fcomment = e.currentTarget.previousElementSibling.value;
-  const comments = document.createElement("article");
-  comments.innerHTML = `<p> <span class="forecast">${forecast}</span> - ${fcomment} <strong class="dute">${new Date().getDate()}/${new Date().getMonth()}/${new Date().getFullYear()}</strong>
- </p>`;
-  e.currentTarget.nextElementSibling.prepend(comments);
-  e.currentTarget.previousElementSibling.previousElementSibling.value = "";
-  e.currentTarget.previousElementSibling.value = "";
-  e.currentTarget.previousElementSibling.previousElementSibling.previousElementSibling.innerHTML = `Latest Prediction: ${forecast} `;
+    e.currentTarget.previousElementSibling.previousElementSibling;
+  const comment = e.currentTarget.previousElementSibling;
+  const commentElement = document.createElement("article");
+  commentElement.innerHTML = `<span class="forecast">${
+    forecast.value
+  }</span> - ${
+    comment.value
+  } <strong class="comment-date">${new Date().getDate()}/${new Date().getMonth()}/${new Date().getFullYear()}</strong>`;
+  const commentContainer = document.querySelector(".comments-container");
+  commentContainer.prepend(commentElement);
+  e.currentTarget.previousElementSibling.previousElementSibling.previousElementSibling.innerHTML = `Latest Prediction: ${forecast.value} `;
+  forecast.value = "";
+  comment.value = "";
 }
